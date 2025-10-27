@@ -13,7 +13,7 @@ pipeline {
  stage('Run Docker Container') { 
  steps { 
  bat 'docker rm -f registration-container || exit 0' 
- bat 'docker run -d -p 5000:5000 --name registration-container  register:v1' 
+ bat 'docker run -d -p 5001:5000 --name registration-container  register:v1' 
  } 
  } 
  } 
