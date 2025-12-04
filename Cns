@@ -1,0 +1,240 @@
+Week 1a: Caesar Cipher
+def caesar_encrypt(text, shift): result = ""
+for char in text:
+if char.isupper():
+result += chr((ord(char) + shift - 65) % 26 + 65) elif char.islower():
+result += chr((ord(char) + shift - 97) % 26 + 97) else:
+result += char return result
+def caesar_decrypt(cipher, shift):
+return caesar_encrypt(cipher, -shift)
+if  name  == " main ":
+text = input("Enter a message: ")
+shift = int(input("Enter a shift value (1-25): ")) encrypted = caesar_encrypt(text, shift)
+decrypted = caesar_decrypt(encrypted, shift) print("Encrypted:", encrypted) print("Decrypted:", decrypted)
+
+
+Week 1b: Playfair Cipher
+def playfair_prepare(text: str, for_enc=True):
+t = text.upper().replace('J', 'I').replace(' ', '') pairs = []
+i = 0
+while i < len(t):
+a = t[i]
+b = t[i+1] if i+1 < len(t) else 'X' if for_enc and a == b:
+pairs.append((a, 'X')) i += 1
+else:
+pairs.append((a, b)) i += 2
+return pairs
+def playfair_matrix(key: str):
+key = key.upper().replace('J', 'I') m = []
+for c in key:
+if c.isalpha() and c not in m: m.append(c)
+for c in "ABCDEFGHIKLMNOPQRSTUVWXYZ":
+if c not in m: m.append(c)
+return [m[i:i+5] for i in range(0, 25, 5)]
+def pos(m, ch):
+for i in range(5):
+for j in range(5):
+if m[i][j] == ch: return i, j
+def encrypt_pair(pair, m): a, b = pair
+r1, c1 = pos(m, a); r2, c2 = pos(m, b) if r1 == r2:
+return m[r1][(c1+1)%5] + m[r2][(c2+1)%5] if c1 == c2:
+return m[(r1+1)%5][c1] + m[(r2+1)%5][c2] return m[r1][c2] + m[r2][c1]
+def decrypt_pair(pair, m): a, b = pair
+r1, c1 = pos(m, a); r2, c2 = pos(m, b) if r1 == r2:
+return m[r1][(c1-1)%5] + m[r2][(c2-1)%5] if c1 == c2:
+ 
+return m[(r1-1)%5][c1] + m[(r2-1)%5][c2] return m[r1][c2] + m[r2][c1]
+def playfair_encrypt(text, key): m = playfair_matrix(key)
+pairs = playfair_prepare(text, True)
+return ''.join(encrypt_pair(p, m) for p in pairs)
+def playfair_decrypt(cipher, key): m = playfair_matrix(key)
+pairs = playfair_prepare(cipher, False)
+return ''.join(decrypt_pair(p, m) for p in pairs)
+if  name  == " main ":
+text = input("Enter text: ") key = input("Enter key: ")
+c = playfair_encrypt(text, key) print("Encrypted:", c)
+print("Decrypted:", playfair_decrypt(c, key))
+
+
+Week 3: DES
+from Crypto.Cipher import DES
+def pad(data: bytes, block_size=8) -> bytes:
+return data + b' ' * ((block_size - len(data) % block_size) % block_size)
+if  name  == " main ":
+key = input("Enter 8-byte key: ").encode()[:8].ljust(8, b' ') text = input("Enter text to encrypt: ").encode()
+des = DES.new(key, DES.MODE_ECB) encrypted = des.encrypt(pad(text, 8))
+decrypted = des.decrypt(encrypted).rstrip(b' ')
+print("Encrypted:", encrypted) print("Decrypted:", decrypted.decode())
+
+
+Week 4: AES
+from Crypto.Cipher import AES
+def pad(data: bytes, block_size=16) -> bytes:
+return data + b' ' * ((block_size - len(data) % block_size) % block_size)
+if  name  == " main ":
+key = input("Enter 16-byte key: ").encode()[:16].ljust(16, b' ') text = input("Enter text to encrypt: ").encode()
+aes = AES.new(key, AES.MODE_ECB) encrypted = aes.encrypt(pad(text, 16))
+decrypted = aes.decrypt(encrypted).rstrip(b' ')
+print("Encrypted:", encrypted) print("Decrypted:", decrypted.decode())
+
+
+Week 5: AES (ECB)
+from Crypto.Cipher import AES
+def pad(data: bytes, block_size=16) -> bytes:
+return data + b' ' * ((block_size - len(data) % block_size) % block_size)
+if  name  == " main ":
+key = input("Enter 16-byte key: ").encode()[:16].ljust(16, b' ') text = input("Enter text to encrypt: ").encode()
+cipher = AES.new(key, AES.MODE_ECB)
+ 
+encrypted = cipher.encrypt(pad(text, 16)) decrypted = cipher.decrypt(encrypted).rstrip(b' ')
+print("Encrypted:", encrypted) print("Decrypted:", decrypted.decode())
+
+
+Week 5: AES (CBC)
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+def pad(data: bytes, block_size=16) -> bytes:
+return data + b' ' * ((block_size - len(data) % block_size) % block_size)
+if  name  == " main ":
+key = input("Enter 16-byte key: ").encode()[:16].ljust(16, b' ') text = input("Enter text to encrypt: ").encode()
+iv = get_random_bytes(16)
+cipher = AES.new(key, AES.MODE_CBC, iv) encrypted = cipher.encrypt(pad(text, 16))
+cipher = AES.new(key, AES.MODE_CBC, iv)
+decrypted = cipher.decrypt(encrypted).rstrip(b' ')
+print("IV:", iv) print("Encrypted:", encrypted)
+print("Decrypted:", decrypted.decode())
+
+
+Week 6: RC4
+def rc4(key: str, data: bytes) -> bytes: # KSA
+S = list(range(256)) j = 0
+for i in range(256):
+j = (j + S[i] + ord(key[i % len(key)])) % 256 S[i], S[j] = S[j], S[i]
+# PRGA
+i = j = 0 out = []
+for byte in data:
+i = (i + 1) % 256
+j = (j + S[i]) % 256 S[i], S[j] = S[j], S[i]
+out.append(byte ^ S[(S[i] + S[j]) % 256]) return bytes(out)
+if  name  == " main ":
+key = input("Enter key: ")
+text = input("Enter text: ").encode()
+encrypted = rc4(key, text) decrypted = rc4(key, encrypted)
+print("Encrypted:", encrypted) print("Decrypted:", decrypted.decode())
+
+
+Week 7: RSA
+import math
+if  name  == " main ":
+p = int(input("Enter prime p: "))
+q = int(input("Enter prime q: "))
+n = p * q
+phi = (p - 1) * (q - 1)
+ 
+e = 65537 if math.gcd(65537, phi) == 1 else 3 d = pow(e, -1, phi)
+print("Public Key:", (e, n))
+print("Private Key:", (d, n))
+msg = int(input(f"Enter message (< {n}): ")) if not (0 <= msg < n):
+raise ValueError("Message must be less than n")
+enc = pow(msg, e, n) dec = pow(enc, d, n)
+print("Encrypted:", enc) print("Decrypted:", dec)
+
+
+Week 8: Diffie-Hellman
+if  name  == " main ":
+p = int(input("Enter prime p: "))
+g = int(input("Enter primitive root g: "))
+a = int(input("Enter Alice's private key: "))
+b = int(input("Enter Bob's private key: "))
+A = pow(g, a, p) # Alice's public key
+B = pow(g, b, p) # Bob's public key
+k_alice = pow(B, a, p) # Alice's shared secret k_bob	= pow(A, b, p) # Bob's shared secret
+print("Alice's Public Key:", A) print("Bob's Public Key:", B) print("Shared Secret (Alice):", k_alice) print("Shared Secret (Bob):", k_bob)
+if k_alice == k_bob:
+print("Success! Shared secret matches.") else:
+print("Error! Shared secrets differ.")
+
+
+
+
+Week 10— Digital signature
+
+package week10;
+import java.io.*;
+import java.security.*;
+
+public class GenerateDigitalSignature {
+    public static void main(String[] args) {
+        try {
+            // File to sign
+            String inputFile = "C:\\Users\\Admin\\OneDrive\\Desktop\\1298\\anam.txt";
+
+            // 1️⃣ Create Key Pair (Private & Public)
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA");
+            keyGen.initialize(1024);
+            KeyPair pair = keyGen.generateKeyPair();
+            PrivateKey privateKey = pair.getPrivate();
+            PublicKey publicKey = pair.getPublic();
+
+            // 2️⃣ Initialize Signature object
+            Signature sign = Signature.getInstance("SHA1withDSA");
+            sign.initSign(privateKey);
+
+            // 3️⃣ Read the input file and update signature
+            FileInputStream fis = new FileInputStream(inputFile);
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = fis.read(buffer)) != -1) {
+                sign.update(buffer, 0, len);
+            }
+            fis.close();
+
+            // 4️⃣ Generate the signature
+            byte[] digitalSignature = sign.sign();
+
+            // 5️⃣ Save the signature and public key to files
+            FileOutputStream sigOut = new FileOutputStream("C:\\Users\\Admin\\OneDrive\\Desktop\\1298\\signature.txt");
+            sigOut.write(digitalSignature);
+            sigOut.close();
+
+            FileOutputStream keyOut = new FileOutputStream("C:\\Users\\Admin\\OneDrive\\Desktop\\1298\\publickey.txt");
+            keyOut.write(publicKey.getEncoded());
+            keyOut.close();
+
+            // 6️⃣ Done
+            System.out.println("✅ Digital signature created successfully!");
+            System.out.println("Signature file: C:\\Users\\Admin\\OneDrive\\Desktop\\1298\\signature.txt");
+            System.out.println("Public key file: C:\\Users\\Admin\\OneDrive\\Desktop\\1298\\publickey.txt");
+
+        } catch (Exception e) {
+            System.err.println("❌ Error: " + e.getMessage());
+        }
+    }
+}
+
+
+
+
+Week 9—  SHA
+
+
+import hashlib
+
+# Ask user for input
+my_text = input("Enter a message: ")
+
+# Convert the text to bytes
+my_bytes = my_text.encode('utf-8')
+
+# Create a SHA-512 hash object
+hash_object = hashlib.sha512()
+
+# Update the hash with the message bytes
+hash_object.update(my_bytes)
+
+# Get the hexadecimal hash value
+hash_hex = hash_object.hexdigest()
+
+# Print the result
+print("SHA-512 hash of", my_text, ":", hash_hex)
+
